@@ -1,16 +1,31 @@
+"""
+
+Computer Networks Fall 2013
+Elizabeth Duncan
+
+routerRefactor.py is based on router.py except that the code has been restructured to include
+python with statement and other structures
+
+This script flashes a LED with a Morse message (if message is provided). Afterwards, it waits to
+receive a message through the photodiode. Any message received will be translated into Morse code.
+
+If at any time the program exits, the LED will be turned off and GPIO will be cleaned up.
+
+"""
+
+
 import RPi.GPIO as GPIO, time, os
 import time
 import sys
 
 class Run(object):
 	def __init__ (self, LED_pin = None, DIODE_pin = None, message = "1 HI ="):
-		print("in run")
 
 		with MorseMessage(LED_pin = 25, DIODE_pin = 18) as fd:
-			fd.read()
+			
 			#If router starts with a message, send that
-			if message:
-				fd.write(message)
+			#if message:
+			#	fd.write(message)
 			#Read any incomming message
 			fd.read()
 			
@@ -163,12 +178,15 @@ class MorseMessage(object):
 	
 	#read the Morse message with the photodiode	
 	def read(self):
+                #make sure that LED is off for reading mode
+                GPIO.output(25, False)
+                print("READING MODE")
                 while True:
-                    value = self.RCtime(self.LED_pin)
+                    value = self.RCtime(self.DIODE_pin)
                     #print(value)
 
                     #If value returned from RCtime is greater than 200, LED is OFF
-                    if value > 200:
+                    if value > 100:
                         #If oncounter is greater than zero, the LED was JUST turned off
                         if self.oncounter > 0:
 	            
@@ -176,7 +194,7 @@ class MorseMessage(object):
                                 print("Dot");
                                 self.currentLetter.append('.')
 	                
-                            if  21 <= oncounter <= 33:
+                            if  21 <= self.oncounter <= 33:
                                 print("Dash");
                                 self.currentLetter.append('-')
 	                
@@ -187,7 +205,7 @@ class MorseMessage(object):
 
                         if self.offcounter > 100 and self.begin != 0:
                             self.key = ''.join(self.currentLetter)
-                            if self.MorseCode[key] == 'SK' :
+                            if self.MorseCode[self.key] == 'SK' :
                                 if self.phrase[0] == '1':
                                     self.phrase = self.phrase + "SK"
                                     print("message received!")
@@ -199,38 +217,40 @@ class MorseMessage(object):
                                     #repeat()
                                     write(self, self.phrase)                                   
                                     exit()
-	        #If value returned from RCtime is less than 200, LED is ON
-                else:
-                    #Begin keeps track of how many times this has been called
-	            self.begin = self.begin + 1
+	            #If value returned from RCtime is less than 100, LED is ON
+                    else:  
+                        #Begin keeps track of how many times this has been called
+	                self.begin = self.begin + 1
 	        
-	            #If oncounter is greater than zero, the LED was JUST turned ON
-	            if self.offcounter > 0:
-	                print(self.offcounter);
-	                if 1 <= self.offcounter <= 15:
-	                    #The space between parts of the same letter (1 unit)
-	                    pass
+                        #If oncounter is greater than zero, the LED was JUST turned ON
+	                if self.offcounter > 0:
+	                    #print(self.offcounter)
+	                    if 1 <= self.offcounter <= 15:
+                                #The space between parts of the same letter (1 unit)
+	                        pass
 	            
-	                if  16 <= self.offcounter <= 40 and self.begin != 1:
-	                    #The space between letter (3 units)
+	                    if  16 <= self.offcounter <= 40 and self.begin != 1:
+	                        #The space between letter (3 units)
 
-                            self.key = ''.join(self.currentLetter)
-                            #Print the letter that corresponds to the Morse Code signal
-	                    print(self.MorseCode[self.key])
-	                    self.phrase = self.phrase + self.MorseCode[self.key]
-	                    self.currentLetter[:] = []
+                                self.key = ''.join(self.currentLetter)
+                                #Print the letter that corresponds to the Morse Code signal
+	                        print(self.MorseCode[self.key])
+	                        self.phrase = self.phrase + self.MorseCode[self.key]
+	                        self.currentLetter[:] = []
 	                
-	                if 40 <= self.offcounter <= 120 and self.begin != 1:
-                            #The space between words (7 units)
-	                    self.key = ''.join(self.currentLetter)
-	                    print(self.MorseCode[self.key])
-	                    self.phrase = phrase + self.MorseCode[self.key]
-	                    print(" ")
-	                    self.phrase = self.phrase + " "
-	                    self.currentLetter[:] = []
+	                    if 40 <= self.offcounter <= 120 and self.begin != 1:
+                                #The space between words (7 units)
+	                        self.key = ''.join(self.currentLetter)
+	                        #print(self.key)
+	                        print(self.MorseCode[self.key])
+	                        #print("printed letter")
+	                        self.phrase = self.phrase + self.MorseCode[self.key]
+	                        print(" ")
+	                        self.phrase = self.phrase + " "
+	                        self.currentLetter[:] = []
 	            
-	            self.offcounter = 0
-	            self.oncounter = self.oncounter + 1
+	                self.offcounter = 0
+	                self.oncounter = self.oncounter + 1
 	
 	#write the Morse message with the LED	
 	def write(self, message):
